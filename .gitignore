@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# 输出产物
+stats.json
+word_freq.json
+report.html
+*.html
+!templates/*.html
+
+# 聊天记录原始数据（隐私，不要上传）
+*.jsonl
+chunks/
+manifest.json
+
+# 照片和音频（用户私有，不要上传）
+story_*.png
+story_*.jpg
+sticker_*.png
+cover.jpg
+ending.jpg
+bgm.mp3
+*.mp3
+*.wav
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

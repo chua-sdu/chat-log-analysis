@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><!-- 标题占位：如 "chuaaaaa × fengshanzzz 聊天记录可视化报告" --></title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #fafafa; color: #1f2937; }
+        .gradient-text { background: linear-gradient(135deg, #6366f1, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+        /* 封面 */
+        .cover { min-height: 100vh; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; overflow: hidden; }
+        .cover-bg { position: absolute; inset: 0; background-size: cover; background-position: center; }
+        .cover-mask { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(99,102,241,0.4), rgba(236,72,153,0.35)); }
+        .cover-content { position: relative; z-index: 2; text-align: center; }
+        .cover h1 { font-size: 3rem; margin-bottom: 1rem; text-shadow: 0 2px 20px rgba(0,0,0,0.3); }
+        .cover p { font-size: 1.2rem; opacity: 0.9; }
+
+        /* 数据报告区 */
+        .section { padding: 60px 20px; max-width: 900px; margin: 0 auto; }
+        .section-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }
+        .section-subtitle { color: #6b7280; margin-bottom: 30px; }
+        .chart-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); margin-bottom: 24px; }
+        .chart-card h3 { font-size: 1.1rem; margin-bottom: 16px; color: #374151; }
+        .chart-wrap { position: relative; height: 320px; }
+        .judgment { margin-top: 16px; padding: 14px 18px; background: linear-gradient(135deg, #f5f3ff, #fdf2f8); border-radius: 10px; border-left: 4px solid #8b5cf6; font-size: 0.9rem; line-height: 1.7; color: #4b5563; }
+        .judgment strong { color: #6366f1; }
+
+        /* 故事线 - 时间轴+拍立得风格 */
+        .story-intro { min-height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(160deg, #fdf4ff, #f5f3ff); text-align: center; padding: 40px 20px; }
+        .story-section { position: relative; min-height: 100vh; display: flex; align-items: center; padding: 50px 40px 50px 120px; overflow: visible; }
+        .story-section:nth-child(odd) { background: linear-gradient(160deg, #fdf4ff, #f5f3ff); }
+        .story-section:nth-child(even) { background: linear-gradient(160deg, #f5f3ff, #fdf2f8); }
+        .story-section::before { content: ''; position: absolute; left: 60px; top: 0; bottom: 0; width: 3px; background: linear-gradient(to bottom, #c4b5fd, #f9a8d4, #c4b5fd); opacity: 0.4; }
+        .story-section::after { content: ''; position: absolute; left: 52px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 4px solid #ec4899; box-shadow: 0 0 0 5px rgba(236,72,153,0.15); z-index: 3; }
+        .story-container { display: flex; flex-direction: row; align-items: center; gap: 36px; width: 100%; max-width: 1000px; position: relative; z-index: 2; text-align: left; }
+        .story-image-wrap { position: relative; display: inline-block; flex: 0 0 auto; max-width: 46%; }
+        .story-image { max-height: 56vh; width: auto; max-width: 100%; object-fit: contain; background: #fff; padding: 10px 10px 40px 10px; box-shadow: 0 14px 36px rgba(99,102,241,0.18); border-radius: 4px; display: block; cursor: zoom-in; }
+        .story-image-wrap::before { content: ''; position: absolute; top: -10px; left: 50%; transform: translateX(-50%) rotate(-3deg); width: 70px; height: 22px; background: rgba(255,215,140,0.6); z-index: 2; }
+        .story-section:nth-child(odd) .story-image { transform: rotate(-1.5deg); }
+        .story-section:nth-child(even) .story-image { transform: rotate(1.5deg); }
+        .story-grid { display: flex; flex-wrap: wrap; gap: 14px; justify-content: flex-start; }
+        .story-grid .story-image { max-height: 30vh; padding: 7px 7px 30px 7px; }
+        .story-content { flex: 1; min-width: 0; max-width: none; opacity: 0; transform: translateY(24px); transition: opacity 0.8s, transform 0.8s; position: relative; z-index: 1; }
+        .story-content.visible { opacity: 1; transform: translateY(0); }
+        .story-number { font-family: 'ZCOOL KuaiLe', cursive; font-size: 76px; font-weight: normal; background: linear-gradient(135deg, #6366f1, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 0.9; opacity: 0.15; margin-bottom: -6px; }
+        .story-title { font-family: 'ZCOOL KuaiLe', cursive; font-size: 30px; font-weight: normal; color: #1f2937; margin-bottom: 12px; }
+        .story-divider { width: 48px; height: 3px; background: linear-gradient(90deg, #6366f1, #ec4899); margin-bottom: 14px; border-radius: 2px; }
+        .story-text { font-size: 16px; line-height: 2; color: #4b5563; }
+        .story-sticker { position: absolute; z-index: 1; pointer-events: none; animation: story-float 4s ease-in-out infinite; opacity: 0.88; }
+        @keyframes story-float { 0%,100% { transform: translateY(0) rotate(-5deg); } 50% { transform: translateY(-10px) rotate(5deg); } }
+
+        /* 生日蛋糕 */
+        .cake-section { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(160deg, #fdf2f8, #f5f3ff, #fef3c7); position: relative; overflow: hidden; padding: 40px 20px; }
+        .cake-title { font-family: 'ZCOOL KuaiLe', cursive; font-size: 36px; color: #1f2937; margin-bottom: 8px; }
+        .cake-hint { font-size: 15px; color: #9ca3af; margin-bottom: 30px; animation: hint-pulse 2s ease-in-out infinite; }
+        @keyframes hint-pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+        .cake { position: relative; width: 280px; height: 240px; cursor: pointer; transition: transform 0.3s; }
+        .cake:hover { transform: scale(1.03); }
+        .cake-layer-bottom { position: absolute; bottom: 0; width: 280px; height: 80px; background: linear-gradient(135deg, #f9a8d4, #f472b6); border-radius: 14px 14px 8px 8px; box-shadow: 0 8px 24px rgba(244,114,182,0.3); }
+        .cake-layer-bottom::before { content: ''; position: absolute; top: -8px; left: 0; right: 0; height: 16px; background: repeating-linear-gradient(90deg, #fff 0px, #fff 18px, #fce7f3 18px, #fce7f3 36px); border-radius: 8px; }
+        .cake-layer-middle { position: absolute; bottom: 72px; left: 30px; width: 220px; height: 70px; background: linear-gradient(135deg, #c4b5fd, #a78bfa); border-radius: 12px 12px 6px 6px; box-shadow: 0 6px 20px rgba(167,139,250,0.3); }
+        .cake-layer-middle::before { content: ''; position: absolute; top: -7px; left: 0; right: 0; height: 14px; background: repeating-linear-gradient(90deg, #fff 0px, #fff 16px, #ede9fe 16px, #ede9fe 32px); border-radius: 7px; }
+        .cake-layer-top { position: absolute; bottom: 135px; left: 65px; width: 150px; height: 55px; background: linear-gradient(135deg, #fde68a, #fcd34d); border-radius: 10px 10px 5px 5px; box-shadow: 0 4px 16px rgba(252,211,77,0.3); }
+        .cake-layer-top::before { content: ''; position: absolute; top: -6px; left: 0; right: 0; height: 12px; background: repeating-linear-gradient(90deg, #fff 0px, #fff 14px, #fef9c3 14px, #fef9c3 28px); border-radius: 6px; }
+        .candle { position: absolute; bottom: 185px; left: 50%; transform: translateX(-50%); width: 10px; height: 32px; background: linear-gradient(to bottom, #f87171, #ef4444, #f87171); border-radius: 3px; z-index: 2; }
+        .flame { position: absolute; bottom: 215px; left: 50%; transform: translateX(-50%); width: 14px; height: 22px; background: radial-gradient(ellipse at center bottom, #fef08a, #fbbf24 40%, #f97316 70%, #ef4444); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; animation: flicker 0.25s ease-in-out infinite alternate; z-index: 3; filter: drop-shadow(0 0 8px rgba(251,191,36,0.6)); }
+        @keyframes flicker { 0% { transform: translateX(-50%) scale(1,1) rotate(-2deg); } 100% { transform: translateX(-50%) scale(1.1,0.95) rotate(2deg); } }
+        .flame.out { animation: blow-out 0.6s ease-out forwards; }
+        @keyframes blow-out { 0% { transform: translateX(-50%) scale(1); opacity: 1; } 40% { transform: translateX(-50%) scale(1.4,0.4); opacity: 0.7; } 100% { transform: translateX(-50%) scale(0); opacity: 0; } }
+        .smoke { position: absolute; bottom: 218px; left: 50%; transform: translateX(-50%); width: 6px; height: 6px; background: rgba(180,180,180,0.7); border-radius: 50%; opacity: 0; z-index: 2; }
+        .smoke.show { animation: smoke-rise 2s ease-out forwards; }
+        @keyframes smoke-rise { 0% { opacity: 0.7; transform: translateX(-50%) translateY(0) scale(1); } 100% { opacity: 0; transform: translateX(-50%) translateY(-80px) scale(3); } }
+        .birthday-message { margin-top: 36px; max-width: 520px; text-align: center; font-family: 'ZCOOL KuaiLe', cursive; font-size: 17px; line-height: 2.1; color: #4b5563; min-height: 100px; white-space: pre-wrap; opacity: 0; transition: opacity 0.5s; }
+        .birthday-message.show { opacity: 1; }
+        .typing-cursor { display: inline-block; width: 2px; height: 1.1em; background: #ec4899; animation: blink 0.8s step-end infinite; vertical-align: text-bottom; margin-left: 2px; }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+        .confetti { position: fixed; top: -20px; z-index: 9998; pointer-events: none; }
+        @keyframes confetti-fall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+
+        /* 音乐播放器 */
+        .music-player { position: fixed; bottom: 24px; right: 24px; z-index: 999; width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 24px rgba(99,102,241,0.25); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; color: #6366f1; }
+        .music-player:hover { transform: scale(1.1); color: #ec4899; }
+        .music-player.playing { color: #ec4899; animation: music-pulse 2s ease-in-out infinite; }
+        @keyframes music-pulse { 0%,100% { box-shadow: 0 6px 24px rgba(236,72,153,0.25); } 50% { box-shadow: 0 6px 32px rgba(236,72,153,0.45); } }
+
+        /* 图片放大查看 */
+        .lightbox-overlay { position: fixed; inset: 0; background: rgba(15,10,40,0.88); z-index: 1000; opacity: 0; transition: opacity 0.4s; display: flex; align-items: center; justify-content: center; cursor: zoom-out; backdrop-filter: blur(6px); }
+        .lightbox-overlay.active { opacity: 1; }
+        .lightbox-img { position: fixed; background: #fff; border-radius: 4px; box-shadow: 0 30px 80px rgba(0,0,0,0.5); transition: left 0.5s cubic-bezier(0.34,1.4,0.64,1), top 0.5s cubic-bezier(0.34,1.4,0.64,1), width 0.5s cubic-bezier(0.34,1.4,0.64,1), height 0.5s cubic-bezier(0.34,1.4,0.64,1); cursor: zoom-out; object-fit: contain; }
+
+        /* 鼠标爱心 */
+        .cursor-heart { position: fixed; pointer-events: none; z-index: 9999; animation: heart-float 1.3s ease-out forwards; user-select: none; }
+        @keyframes heart-float { 0% { opacity: 1; transform: translate(-50%,-50%) scale(1) rotate(0deg); } 100% { opacity: 0; transform: translate(-50%,-140%) scale(0.4) rotate(25deg); } }
+
+        @media (max-width: 768px) {
+            .story-section { padding: 40px 20px 40px 70px; }
+            .story-section::before { left: 32px; }
+            .story-section::after { left: 24px; }
+            .story-container { flex-direction: column; align-items: flex-start; gap: 20px; }
+            .story-image-wrap { max-width: 100%; }
+            .cover h1 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 音乐播放器 -->
+    <div class="music-player" id="musicPlayer">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="pauseIcon" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        <audio id="bgm" src="bgm.mp3" loop preload="auto"></audio>
+    </div>
+
+    <!-- 封面 -->
+    <section class="cover">
+        <div class="cover-bg" style="background-image: url('cover.jpg');"></div>
+        <div class="cover-mask"></div>
+        <div class="cover-content">
+            <h1><!-- 封面标题 --></h1>
+            <p><!-- 封面副标题，如 "两年 · 二十八万条消息 · 我们的故事" --></p>
+        </div>
+    </section>
+
+    <!-- === 数据可视化报告区 === -->
+    <!-- 每个图表卡片结构：
+    <div class="chart-card">
+        <h3>图表标题</h3>
+        <div class="chart-wrap"><canvas id="chartXxx"></canvas></div>
+        <div class="judgment"><strong>📌 判断：</strong>结论文字</div>
+    </div>
+    -->
+
+    <!-- 故事线介绍 -->
+    <section class="story-intro">
+        <h2 class="text-4xl font-bold gradient-text mb-4">我们的故事</h2>
+        <p class="text-gray-500 text-lg">从初识到现在，每一个瞬间都值得纪念<br>向下滚动，逐帧展开</p>
+    </section>
+
+    <!-- 故事线占位：在此插入 <section class="story-section"> 每一幕 -->
+    <!-- 每幕结构：
+    <section class="story-section">
+        <div class="story-container">
+            <div class="story-image-wrap"><img src="story_01.png" class="story-image"></div>
+            <div class="story-content">
+                <div class="story-number">01</div>
+                <h3 class="story-title">幕标题</h3>
+                <div class="story-divider"></div>
+                <p class="story-text">故事文字</p>
+            </div>
+        </div>
+    </section>
+    -->
+
+    <!-- 生日蛋糕互动（如不需要可删除） -->
+    <section class="cake-section">
+        <h2 class="cake-title"><!-- 蛋糕标题，如 "fengshanzzz，生日快乐" --></h2>
+        <p class="cake-hint">点击蛋糕，吹灭蜡烛许个愿吧</p>
+        <div class="cake" id="birthdayCake">
+            <div class="cake-layer-bottom"></div>
+            <div class="cake-layer-middle"></div>
+            <div class="cake-layer-top"></div>
+            <div class="candle"></div>
+            <div class="flame" id="cakeFlame"></div>
+            <div class="smoke" id="cakeSmoke"></div>
+        </div>
+        <div class="birthday-message" id="birthdayMessage"></div>
+    </section>
+
+    <script>
+        // ============ 数据注入区：替换为 stats.json 的实际数据 ============
+        const REPORT_DATA = {
+            selfName: "自己",
+            peerName: "对方",
+            total: 0,
+            selfCount: 0,
+            peerCount: 0,
+            types: {},
+            monthly: [],
+            hourly: { self: {}, peer: {} },
+            sessions: { count: 0, initiator_self: 0, initiator_peer: 0 },
+            replySpeed: { self_median_ms: 0, peer_median_ms: 0 },
+            themes: {},
+            nicknames: [] // {month, count}
+        };
+        const BIRTHDAY_MESSAGE = "祝福语内容，用\\n换行";
+        // ============================================================
+
+        Chart.defaults.font.family = "'PingFang SC', 'Microsoft YaHei', sans-serif";
+        Chart.defaults.color = '#6b7280';
+
+        // 图表初始化（7个图表，按实际需要启用）
+        // 1. 消息量饼图 2. 内容构成环形图 3. 月度走势 4. 24小时活跃
+        // 5. 会话发起饼图 6. 主题柱状图 7. 亲密称呼折线
+
+        // 故事线滚动淡入
+        document.querySelectorAll('.story-content').forEach(el => {
+            const obs = new IntersectionObserver(entries => {
+                entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+            }, { threshold: 0.15 });
+            obs.observe(el);
+        });
+
+        // 音乐播放器
+        const bgm = document.getElementById('bgm');
+        const musicPlayer = document.getElementById('musicPlayer');
+        const playIcon = document.getElementById('playIcon');
+        const pauseIcon = document.getElementById('pauseIcon');
+        let musicPlaying = false;
+        musicPlayer.addEventListener('click', () => {
+            if (musicPlaying) { bgm.pause(); musicPlayer.classList.remove('playing'); playIcon.style.display='block'; pauseIcon.style.display='none'; }
+            else { bgm.play().catch(()=>{}); musicPlayer.classList.add('playing'); playIcon.style.display='none'; pauseIcon.style.display='block'; }
+            musicPlaying = !musicPlaying;
+        });
+
+        // 鼠标跟随爱心
+        const hearts = ['❤️','💖','💕','✨','🌸','💗'];
+        let lastHeart = 0;
+        document.addEventListener('mousemove', e => {
+            const now = Date.now();
+            if (now - lastHeart < 90) return;
+            lastHeart = now;
+            const h = document.createElement('div');
+            h.className = 'cursor-heart';
+            h.textContent = hearts[Math.floor(Math.random()*hearts.length)];
+            h.style.left = e.clientX + 'px';
+            h.style.top = e.clientY + 'px';
+            h.style.fontSize = (14 + Math.random()*14) + 'px';
+            document.body.appendChild(h);
+            setTimeout(() => h.remove(), 1300);
+        });
+
+        // 点击图片放大
+        let lightboxActive = false;
+        document.querySelectorAll('.story-image').forEach(img => {
+            img.addEventListener('click', e => {
+                e.stopPropagation();
+                if (lightboxActive) return;
+                lightboxActive = true;
+                const rect = img.getBoundingClientRect();
+                const overlay = document.createElement('div');
+                overlay.className = 'lightbox-overlay';
+                const clone = img.cloneNode(true);
+                clone.className = 'lightbox-img';
+                clone.style.left = rect.left + 'px';
+                clone.style.top = rect.top + 'px';
+                clone.style.width = rect.width + 'px';
+                clone.style.height = rect.height + 'px';
+                clone.style.padding = getComputedStyle(img).padding;
+                clone.style.background = '#fff';
+                overlay.appendChild(clone);
+                document.body.appendChild(overlay);
+                document.body.style.overflow = 'hidden';
+                img.style.visibility = 'hidden';
+                clone.offsetWidth;
+                const scale = Math.min((window.innerWidth*0.88)/rect.width, (window.innerHeight*0.88)/rect.height, 2.8);
+                const tw = rect.width*scale, th = rect.height*scale;
+                clone.style.left = ((window.innerWidth-tw)/2)+'px';
+                clone.style.top = ((window.innerHeight-th)/2)+'px';
+                clone.style.width = tw+'px';
+                clone.style.height = th+'px';
+                overlay.classList.add('active');
+                const close = () => {
+                    clone.style.left = rect.left+'px';
+                    clone.style.top = rect.top+'px';
+                    clone.style.width = rect.width+'px';
+                    clone.style.height = rect.height+'px';
+                    overlay.classList.remove('active');
+                    setTimeout(() => { overlay.remove(); img.style.visibility='visible'; document.body.style.overflow=''; lightboxActive=false; }, 500);
+                };
+                overlay.addEventListener('click', close);
+                clone.addEventListener('click', ev => { ev.stopPropagation(); close(); });
+            });
+        });
+
+        // 生日蛋糕互动
+        document.addEventListener('DOMContentLoaded', () => {
+            const cake = document.getElementById('birthdayCake');
+            if (!cake) return;
+            const flame = document.getElementById('cakeFlame');
+            const smoke = document.getElementById('cakeSmoke');
+            const birthdayMsg = document.getElementById('birthdayMessage');
+            let blown = false;
+            cake.addEventListener('click', () => {
+                if (blown) return;
+                blown = true;
+                flame.classList.add('out');
+                smoke.classList.add('show');
+                document.querySelector('.cake-hint').textContent = '愿望一定会实现的 ✨';
+                setTimeout(() => {
+                    const colors = ['#f472b6','#a78bfa','#fbbf24','#34d399','#60a5fa','#fb923c','#f87171'];
+                    for (let i=0; i<100; i++) {
+                        const c = document.createElement('div');
+                        c.className = 'confetti';
+                        c.style.left = Math.random()*100+'vw';
+                        c.style.background = colors[Math.floor(Math.random()*colors.length)];
+                        c.style.animation = `confetti-fall ${2+Math.random()*2.5}s linear ${Math.random()*0.8}s forwards`;
+                        c.style.width = (6+Math.random()*8)+'px';
+                        c.style.height = (8+Math.random()*12)+'px';
+                        c.style.borderRadius = Math.random()>0.5?'50%':'2px';
+                        document.body.appendChild(c);
+                        setTimeout(() => c.remove(), 5500);
+                    }
+                }, 700);
+                setTimeout(() => {
+                    birthdayMsg.classList.add('show');
+                    const cursor = document.createElement('span');
+                    cursor.className = 'typing-cursor';
+                    birthdayMsg.appendChild(cursor);
+                    let i = 0;
+                    const type = () => {
+                        if (i < BIRTHDAY_MESSAGE.length) {
+                            birthdayMsg.insertBefore(document.createTextNode(BIRTHDAY_MESSAGE[i]), cursor);
+                            i++;
+                            setTimeout(type, BIRTHDAY_MESSAGE[i-1]==='\n'?350:65);
+                        } else { setTimeout(() => cursor.remove(), 3000); }
+                    };
+                    type();
+                }, 1400);
+            });
+        });
+    </script>
+</body>
+</html>
