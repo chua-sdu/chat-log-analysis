@@ -48,19 +48,19 @@ The agent will automatically match this skill and follow the workflow:
 
 ## Project Structure
 
--chat-log-analysis/
--├── SKILL.md                          # Main skill document (workflow guide)
--├── README.md                         # This file
--├── .gitignore
--├── references/
--│   ├── pitfalls.md                   # Data analysis pitfalls & lessons
--│   └── html_pitfalls.md              # HTML generation pitfalls & layout lessons
--├── scripts/
--│   ├── analyze.py                    # Chat log analysis script (outputs stats.json)
--│   └── build_html.py                 # HTML builder (data + config → full HTML)
--└── templates/
--└── report_template.html          # HTML template with all interactions
-
+```
+chat-log-analysis/
+├── SKILL.md                          # Skill 主文档（流程指引）
+├── README.md                         # 本文件
+├── references/
+│   ├── pitfalls.md                   # 数据分析技术坑
+│   └── html_pitfalls.md              # HTML 生成技术坑与布局经验
+├── scripts/
+│   ├── analyze.py                    # 聊天记录分析脚本（输出 stats.json）
+│   └── build_html.py                 # HTML 构建脚本（数据+配置→完整HTML）
+└── templates/
+    └── report_template.html          # HTML 模板（含所有交互效果）
+```
 
 ## Chat Log Export Tools
 
